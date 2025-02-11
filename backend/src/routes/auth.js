@@ -1,7 +1,8 @@
-const express = require('express');
-const passport = require('passport');
+import express from 'express';
+import passport from 'passport';
+import { findByGoogleId, create } from '../models/user.js';
+
 const router = express.Router();
-const User = require('../models/user');
 
 // Helper to check if user is authenticated
 const isAuthenticated = (req, res, next) => {
@@ -26,11 +27,11 @@ router.get('/google/callback',
   }),
   async (req, res) => {
     try {
-      let user = await User.findByGoogleId(req.user.id);
+      let user = await findByGoogleId(req.user.id);
       
       if (!user) {
         // Create new user if they don't exist
-        user = await User.create({
+        user = await create({
           googleId: req.user.id,
           email: req.user.emails[0].value,
           displayName: req.user.displayName,
@@ -49,7 +50,7 @@ router.get('/google/callback',
 // Get current user info
 router.get('/me', isAuthenticated, async (req, res) => {
   try {
-    const user = await User.findByGoogleId(req.user.id);
+    const user = await findByGoogleId(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -73,4 +74,4 @@ router.post('/logout', (req, res) => {
   });
 });
 
-module.exports = router;
+export { router as default };

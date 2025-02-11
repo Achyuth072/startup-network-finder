@@ -1,7 +1,8 @@
-const express = require('express');
+import express from 'express';
+import { generateInvestorSuggestions } from '../services/aiService.js';
+import { hasEnoughCredits, deductCredits, getBalance } from '../services/creditService.js';
+
 const router = express.Router();
-const aiService = require('../services/aiService');
-const creditService = require('../services/creditService');
 
 // Authentication middleware
 const isAuthenticated = (req, res, next) => {
@@ -24,7 +25,7 @@ router.post('/', isAuthenticated, async (req, res) => {
 
   try {
     // Check if user has enough credits
-    const hasCredits = await creditService.hasEnoughCredits(userId);
+    const hasCredits = await hasEnoughCredits(userId);
     if (!hasCredits) {
       return res.status(403).json({
         error: 'Insufficient credits',
@@ -33,10 +34,10 @@ router.post('/', isAuthenticated, async (req, res) => {
     }
 
     // Generate suggestions using AI
-    const suggestions = await aiService.generateInvestorSuggestions(query);
+    const suggestions = await generateInvestorSuggestions(query);
 
     // Deduct credits only if AI generation was successful
-    const remainingCredits = await creditService.deductCredits(userId);
+    const remainingCredits = await deductCredits(userId);
 
     // Return the search results along with remaining credits
     res.json({
@@ -65,7 +66,7 @@ router.post('/', isAuthenticated, async (req, res) => {
 // Get remaining credits endpoint
 router.get('/credits', isAuthenticated, async (req, res) => {
   try {
-    const credits = await creditService.getBalance(req.user.id);
+    const credits = await getBalance(req.user.id);
     res.json({ credits });
   } catch (error) {
     console.error('Error fetching credits:', error);
@@ -76,4 +77,4 @@ router.get('/credits', isAuthenticated, async (req, res) => {
   }
 });
 
-module.exports = router;
+export { router as default };

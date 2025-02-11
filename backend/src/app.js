@@ -1,16 +1,21 @@
-const express = require('express');
-const cors = require('cors');
-const passport = require('passport');
-const session = require('express-session');
-const morgan = require('morgan');
-const path = require('path');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const dotenv = require('dotenv');
-const User = require('./models/user');
-const emailService = require('./services/emailService');
+import express from 'express';
+import cors from 'cors';
+import passport from 'passport';
+import session from 'express-session';
+import morgan from 'morgan';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import dotenv from 'dotenv';
+import { findByGoogleId, create } from './models/user.js';
+import { startCreditMonitoring } from './services/creditService.js';
+
+// Get dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: join(__dirname, '..', '.env') });
 
 const app = express();
 
@@ -48,10 +53,10 @@ passport.use(new GoogleStrategy({
   },
   async function(accessToken, refreshToken, profile, done) {
     try {
-      let user = await User.findByGoogleId(profile.id);
+      let user = await findByGoogleId(profile.id);
       
       if (!user) {
-        user = await User.create({
+        user = await create({
           googleId: profile.id,
           email: profile.emails[0].value,
           displayName: profile.displayName,
@@ -72,7 +77,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await User.findByGoogleId(id);
+    const user = await findByGoogleId(id);
     done(null, user);
   } catch (error) {
     done(error, null);
@@ -80,9 +85,9 @@ passport.deserializeUser(async (id, done) => {
 });
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const searchRoutes = require('./routes/search');
-const userRoutes = require('./routes/user');
+import authRoutes from './routes/auth.js';
+import searchRoutes from './routes/search.js';
+import userRoutes from './routes/user.js';
 
 // Mount routes
 app.use('/auth', authRoutes);
@@ -94,8 +99,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Start email monitoring service
-emailService.startEmailMonitoring().catch(console.error);
+// Start email & credit monitoring service
+startCreditMonitoring();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -114,4 +119,5 @@ app.use((req, res) => {
   });
 });
 
-module.exports = app;
+// Export the Express app
+export { app };

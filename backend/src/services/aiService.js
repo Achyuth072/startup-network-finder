@@ -1,5 +1,5 @@
-const axios = require('axios');
-const Investor = require('../models/investor');
+import axios from 'axios';
+import { getAll } from '../models/investor.js';
 
 class AIService {
   constructor() {
@@ -10,7 +10,7 @@ class AIService {
   async generateInvestorSuggestions(query) {
     try {
       // Get all investors/mentors from database
-      const investors = await Investor.getAll();
+      const investors = await getAll();
 
       // Prepare prompt with context and query
       const prompt = this._preparePrompt(query, investors);
@@ -90,4 +90,7 @@ Format your response as a JSON array with objects containing:
   }
 }
 
-module.exports = new AIService();
+// Create and export a singleton instance
+const aiService = new AIService();
+export { aiService as default };
+export const generateInvestorSuggestions = aiService.generateInvestorSuggestions.bind(aiService);

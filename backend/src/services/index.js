@@ -1,8 +1,8 @@
-const aiService = require('./aiService');
-const creditService = require('./creditService');
-const emailService = require('./emailService');
+import aiService from './aiService.js';
+import * as creditService from './creditService.js';
+import * as emailService from './emailService.js';
 
-module.exports = {
+export {
   aiService,
   creditService,
   emailService

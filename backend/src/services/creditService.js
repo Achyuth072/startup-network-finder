@@ -1,4 +1,4 @@
-import pool from '../db/db.js';
+import { pool } from '../db/db.js';
 import { 
   sendCreditExhaustionEmail, 
   checkForRechargeEmails, 
@@ -16,7 +16,12 @@ const getUserCredits = async (userId) => {
   return result.rows[0]?.credits || 0;
 };
 
-const deductCredit = async (userId) => {
+const hasEnoughCredits = async (userId) => {
+  const credits = await getUserCredits(userId);
+  return credits > 0;
+};
+
+const deductCredits = async (userId) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -62,6 +67,8 @@ const deductCredit = async (userId) => {
     client.release();
   }
 };
+
+const getBalance = getUserCredits; // Alias for getUserCredits
 
 const rechargeCredits = async (userEmail) => {
   const client = await pool.connect();
@@ -125,8 +132,10 @@ const startCreditMonitoring = () => {
 
 export {
   getUserCredits,
-  deductCredit,
+  deductCredits,
   rechargeCredits,
   startCreditMonitoring,
-  DEFAULT_CREDITS
+  DEFAULT_CREDITS,
+  hasEnoughCredits,
+  getBalance
 };

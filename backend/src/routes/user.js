@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { findByGoogleId, updateProfile } from '../models/user.js';
+
 const router = express.Router();
-const User = require('../models/user');
 
 // Authentication middleware
 const isAuthenticated = (req, res, next) => {
@@ -13,7 +14,7 @@ const isAuthenticated = (req, res, next) => {
 // Get user profile
 router.get('/profile', isAuthenticated, async (req, res) => {
   try {
-    const user = await User.findByGoogleId(req.user.id);
+    const user = await findByGoogleId(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -30,7 +31,7 @@ router.get('/profile', isAuthenticated, async (req, res) => {
 // Get user's credit history (can be expanded later)
 router.get('/credits/history', isAuthenticated, async (req, res) => {
   try {
-    const user = await User.findByGoogleId(req.user.id);
+    const user = await findByGoogleId(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -50,15 +51,14 @@ router.get('/credits/history', isAuthenticated, async (req, res) => {
 // Update user profile (limited fields)
 router.patch('/profile', isAuthenticated, async (req, res) => {
   try {
-    const user = await User.findByGoogleId(req.user.id);
+    const user = await findByGoogleId(req.user.id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     // For MVP, only allow updating display name
     if (req.body.displayName) {
-      // TODO: Implement update functionality in User model
-      // await User.updateProfile(user.id, { display_name: req.body.displayName });
+      await updateProfile(user.id, { display_name: req.body.displayName });
       res.json({ message: 'Profile updated successfully' });
     } else {
       res.status(400).json({ error: 'No valid fields to update' });
@@ -69,4 +69,4 @@ router.patch('/profile', isAuthenticated, async (req, res) => {
   }
 });
 
-module.exports = router;
+export { router as default };

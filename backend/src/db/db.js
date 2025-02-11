@@ -1,17 +1,19 @@
-const { Pool } = require('pg');
-const dotenv = require('dotenv');
-const path = require('path');
+import pkg from 'pg';
+const { Pool } = pkg;
+import { config } from 'dotenv';
+import { join } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load environment variables
-dotenv.config({ path: path.join(__dirname, '../..', '.env') });
+config({ path: join(__dirname, '../..', '.env') });
 
 // Create a new Pool instance for PostgreSQL connection
 const pool = new Pool({
-  host: process.env.PGHOST,
-  user: process.env.PGUSER,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: process.env.PGPORT,
+  connectionString: process.env.DATABASE_URL,
   // Add SSL configuration if needed for production
   ...(process.env.NODE_ENV === 'production' && {
     ssl: {
@@ -29,8 +31,5 @@ pool.connect((err, client, release) => {
   release();
 });
 
-// Export the pool to be used by other modules
-module.exports = {
-  query: (text, params) => pool.query(text, params),
-  pool
-};
+// Export the pool as a named export
+export { pool };
