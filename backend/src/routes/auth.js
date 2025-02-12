@@ -27,16 +27,12 @@ router.get('/google/callback',
   }),
   async (req, res) => {
     try {
-      let user = await findByGoogleId(req.user.id);
+      console.log('Callback user:', req.user); // Debug log
       
-      if (!user) {
-        // Create new user if they don't exist
-        user = await create({
-          googleId: req.user.id,
-          email: req.user.emails[0].value,
-          displayName: req.user.displayName,
-          profilePicture: req.user.photos[0]?.value
-        });
+      // The user should already be created/found by the passport strategy
+      if (!req.user) {
+        console.error('No user in request after authentication');
+        return res.redirect(`${process.env.FRONTEND_URL}/login?error=auth_failed`);
       }
 
       res.redirect(`${process.env.FRONTEND_URL}/search`);
@@ -50,7 +46,9 @@ router.get('/google/callback',
 // Get current user info
 router.get('/me', isAuthenticated, async (req, res) => {
   try {
-    const user = await findByGoogleId(req.user.id);
+    console.log('Fetching user info for:', req.user); // Debug log
+    
+    const user = await findByGoogleId(req.user.google_id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -66,8 +64,11 @@ router.get('/me', isAuthenticated, async (req, res) => {
 
 // Logout route
 router.post('/logout', (req, res) => {
+  console.log('Logging out user:', req.user); // Debug log
+  
   req.logout((err) => {
     if (err) {
+      console.error('Logout error:', err);
       return res.status(500).json({ error: 'Error during logout' });
     }
     res.json({ message: 'Logged out successfully' });

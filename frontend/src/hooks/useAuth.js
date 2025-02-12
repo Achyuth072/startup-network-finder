@@ -9,7 +9,10 @@ const useAuth = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const response = await axios.get('/api/me');
+        // Requesting user's data from the updated /api/auth/me endpoint
+        const response = await axios.get('/api/auth/me', {
+          withCredentials: true // Send cookies along with the request
+        });
         setUser(response.data);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch user data');
@@ -27,7 +30,10 @@ const useAuth = () => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout');
+      // Update endpoint to /api/auth/logout for consistency
+      await axios.post('/api/auth/logout', {}, {
+        withCredentials: true
+      });
       setUser(null);
       window.location.href = '/login';
     } catch (err) {

@@ -4,8 +4,8 @@ import GoogleIcon from '@mui/icons-material/Google';
 
 const Login = () => {
   const handleGoogleLogin = () => {
-    // Will be implemented to redirect to Google OAuth endpoint
-    window.location.href = '/auth/google';
+    // Use /api/auth/google route (backend routes are mounted under /api)
+    window.location.href = '/api/auth/google';
   };
 
   return (

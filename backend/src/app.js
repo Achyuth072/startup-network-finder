@@ -32,12 +32,13 @@ app.use(cors({
 
 // Session configuration
 app.use(session({
-  secret: process.env.JWT_SECRET || 'default_secret_key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
   }
 }));
 
@@ -53,33 +54,44 @@ passport.use(new GoogleStrategy({
   },
   async function(accessToken, refreshToken, profile, done) {
     try {
+      console.log('Google Profile:', JSON.stringify(profile, null, 2)); // Debug log
+      
       let user = await findByGoogleId(profile.id);
       
       if (!user) {
+        // Create new user if they don't exist
         user = await create({
           googleId: profile.id,
           email: profile.emails[0].value,
           displayName: profile.displayName,
-          profilePicture: profile.photos[0]?.value
+          profilePicture: profile.photos?.[0]?.value || ''
         });
       }
       
       return done(null, user);
     } catch (error) {
+      console.error('Passport Strategy Error:', error); // Debug log
       return done(error, null);
     }
   }
 ));
 
 passport.serializeUser((user, done) => {
-  done(null, user.id);
+  console.log('Serializing user:', user); // Debug log
+  done(null, user.google_id); // Use google_id instead of id
 });
 
-passport.deserializeUser(async (id, done) => {
+passport.deserializeUser(async (googleId, done) => {
   try {
-    const user = await findByGoogleId(id);
+    console.log('Deserializing google_id:', googleId); // Debug log
+    const user = await findByGoogleId(googleId);
+    if (!user) {
+      console.log('User not found during deserialization'); // Debug log
+      return done(null, false);
+    }
     done(null, user);
   } catch (error) {
+    console.error('Deserialization Error:', error); // Debug log
     done(error, null);
   }
 });
@@ -89,10 +101,16 @@ import authRoutes from './routes/auth.js';
 import searchRoutes from './routes/search.js';
 import userRoutes from './routes/user.js';
 
-// Mount routes
-app.use('/auth', authRoutes);
-app.use('/search', searchRoutes);
-app.use('/user', userRoutes);
+// Create the API router
+const apiRouter = express.Router();
+
+// Mount routes under /api
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/search', searchRoutes);
+apiRouter.use('/user', userRoutes);
+
+// Mount the API router
+app.use('/api', apiRouter);
 
 // Basic health check route
 app.get('/health', (req, res) => {
@@ -104,7 +122,7 @@ startCreditMonitoring();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error('Global Error Handler:', err); // Debug log
   res.status(500).json({
     status: 'error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
@@ -119,5 +137,4 @@ app.use((req, res) => {
   });
 });
 
-// Export the Express app
 export { app };
